@@ -1,0 +1,13 @@
+{
+  "r.bracketedPaste": true,
+  "r.plot.useHttpgd": true,
+  "r.sessionWatcher": true,
+  "r.session.watchGlobalEnvironment": true,
+  "r.session.levelOfObjectDetail": "Detailed",
+  "r.session.objectTimeout": 200,
+  "files.associations": {
+    "*.R": "r",
+    "*.r": "r",
+    "*.Rmd": "rmd"
+  }
+}
