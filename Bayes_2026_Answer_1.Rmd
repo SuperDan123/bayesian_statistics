@@ -1,0 +1,1176 @@
+---
+title: "Bayesian Statistics (47-747) — Homework #1"
+author: "Daisy Song"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 7,
+  fig.height = 4.5,
+  fig.align = "center"
+)
+```
+
+**60 points total.** Provide R code for all relevant problems.
+
+---
+
+# Problem 1 (10 points): Beta–Binomial with Arcsine Prior
+
+## (a) Posterior, mean, and variance
+
+
+Given that the probability density function of Beta distribution is given by:
+$$ f(\theta) = \frac{1}{B(\alpha,\beta)} \theta^{\alpha-1} (1-\theta)^{\beta-1}, \qquad 0 < \theta < 1, $$
+where $B(\alpha,\beta)$ is the Beta function.
+
+The Beta function is defined as:
+$$ B(\alpha,\beta) = \frac{\Gamma(\alpha)\Gamma(\beta)}{\Gamma(\alpha+\beta)} $$
+where $\Gamma(\cdot)$ is the Gamma function.
+
+
+The prior is given by:
+
+
+the prior can be rewritten as
+$$
+\pi(\theta)
+=\frac{\theta^{-1/2}(1-\theta)^{-1/2}}
+{B(1/2,1/2)}.
+$$
+Thus,
+$$
+\theta\sim\operatorname{Beta}\left(\frac12,\frac12\right).
+$$
+
+For the observed data $(S,N)$, the likelihood function is
+$$
+L(\theta\mid S,N)
+=\binom NS\theta^S(1-\theta)^{N-S}.
+$$
+When this expression is viewed as a function of $\theta$, the term
+$\binom NS$ is constant. Therefore,
+$$
+L(\theta\mid S,N)
+\propto \theta^S(1-\theta)^{N-S}.
+$$
+By Bayes' rule,
+$$
+\pi(\theta\mid S,N)
+=\frac{L(\theta\mid S,N)\pi(\theta)}{p(S\mid N)}
+\propto L(\theta\mid S,N)\pi(\theta),
+$$
+where $p(S\mid N)$ is a normalizing constant that does not depend on
+$\theta$. Substituting the likelihood and prior gives
+$$
+\begin{aligned}
+\pi(\theta\mid S,N)
+&\propto
+\theta^S(1-\theta)^{N-S}
+\theta^{-1/2}(1-\theta)^{-1/2}\\
+&=\theta^{S-1/2}(1-\theta)^{N-S-1/2}.
+\end{aligned}
+$$
+Comparing this result with the Beta kernel
+$\theta^{\alpha-1}(1-\theta)^{\beta-1}$ gives
+$$
+\alpha=S+\frac12,
+\qquad
+\beta=N-S+\frac12.
+$$
+Consequently,
+$$
+\boxed{
+\theta\mid S,N\sim
+\operatorname{Beta}\left(S+\frac12,N-S+\frac12\right)
+}.
+$$
+The normalized posterior density is
+$$
+\pi(\theta\mid S,N)=
+\frac{
+\theta^{S-1/2}(1-\theta)^{N-S-1/2}
+}{
+B\left(S+\frac12,N-S+\frac12\right)
+}.
+$$
+For $X\sim\operatorname{Beta}(\alpha,\beta)$,
+$$
+E(X)=\frac{\alpha}{\alpha+\beta},
+\qquad
+\operatorname{Var}(X)=
+\frac{\alpha\beta}{(\alpha+\beta)^2(\alpha+\beta+1)}.
+$$
+In this problem, $\alpha+\beta=N+1$. Hence the posterior mean is
+$$
+\boxed{
+E(\theta\mid S,N)=\frac{S+1/2}{N+1}
+},
+$$
+and the posterior variance is
+$$
+\boxed{
+\operatorname{Var}(\theta\mid S,N)=
+\frac{(S+1/2)(N-S+1/2)}{(N+1)^2(N+2)}
+}.
+$$
+
+
+## (b) Plot prior, likelihood, and posterior
+
+Overlay prior, likelihood, and posterior for:
+
+1. $S=1$, $N=1$
+2. $S=4$, $N=6$
+
+```{r p1b-plot-function}
+# define a function for ploting beta-binomial distribution to avoid code duplication
+plot_beta_binomial <- 
+  function(
+    S, 
+    N,
+    alpha0 = 0.5, 
+    beta0 = 0.5,
+    main = NULL
+    ){
+      theta <- ppoints(1000)
+
+      # Prior density
+      dens_prior <- 
+        dbeta(
+          x = theta, 
+          shape1 = alpha0, 
+          shape2 = beta0
+        )
+
+      # Likelihood as a function of theta (up to a constant is fine for shape;
+      # here we plot the binomial pmf in theta)
+      dens_like <- 
+        dbinom(
+          x = S, 
+          size = N, 
+          prob = theta
+        )
+
+      alpha_n <- S + 0.5
+      beta_n  <- N - S + 0.5
+      dens_post <- 
+        dbeta(
+          x = theta, 
+          shape1 = alpha_n, 
+          shape2 = beta_n
+        )
+
+      ylim_max <- 
+        max(dens_prior, dens_like, dens_post, na.rm = TRUE) * 1.05
+
+      if (is.null(main)) {
+        main <- sprintf("S = %d, N = %d", S, N)
+      }
+
+    plot(
+      x = theta, 
+      y = dens_prior, 
+      type = "l", 
+      lwd = 2, 
+      col = "red",
+        ylim = c(0, ylim_max), xlab = expression(theta), ylab = "Density",
+        main = main
+    )
+    lines(
+      x = theta, 
+      y = dens_like,
+      lwd = 2, 
+      col = "blue"
+    )
+    lines(
+      x = theta, 
+      y = dens_post, 
+      lwd = 2, 
+      col = "darkgreen"
+    )
+    legend(
+      "topright",
+      legend = c("Prior", "Likelihood", "Posterior"),
+      col = c("red", "blue", "darkgreen"), lwd = 2, bty = "n"
+    )
+}
+```
+
+```{r p1b-i}
+# Case i: S = 1, N = 1
+plot_beta_binomial(S = 1, N = 1)
+```
+
+```{r p1b-ii}
+# Case ii: S = 4, N = 6
+plot_beta_binomial(S = 4, N = 6)
+```
+
+## (c) Sequential update with new data $(S_1, N_1)$
+
+$$
+\theta\mid S,N
+\sim\operatorname{Beta}\left(
+S+\frac12,N-S+\frac12
+\right).
+$$
+Now suppose an independent second sample produces $S_1$ heads in $N_1$
+trials. The likelihood of the second sample is
+$$
+L_1(\theta\mid S_1,N_1)
+\propto\theta^{S_1}(1-\theta)^{N_1-S_1}.
+$$
+Using the first posterior as the new prior,
+$$
+\begin{aligned}
+\pi(\theta\mid S,N,S_1,N_1)
+&\propto
+L_1(\theta\mid S_1,N_1)\pi(\theta\mid S,N)\\
+&\propto
+\theta^{S_1}(1-\theta)^{N_1-S_1}
+\theta^{S-1/2}(1-\theta)^{N-S-1/2}\\
+&=
+\theta^{S+S_1-1/2}
+(1-\theta)^{N+N_1-S-S_1-1/2}.
+\end{aligned}
+$$
+Therefore,
+$$
+\boxed{
+\theta\mid S,N,S_1,N_1
+\sim\operatorname{Beta}\left(
+S+S_1+\frac12,
+N+N_1-S-S_1+\frac12
+\right)
+}.
+$$
+This is the same posterior that would be obtained by combining both
+samples into $S+S_1$ total heads from $N+N_1$ total trials.
+
+
+# Problem 2 (10 points): Combining Normal Forecasts for GDP
+
+Let $\theta$ be next year’s US GDP growth.
+
+## (a) Your prior
+
+Mean $-2\%$ growth, variance $2.25\%$.  
+(Work in percentage points: $\mu_0 = -2$, $\sigma_0^2 = 2.25$, so precision $\tau_0 = 1/\sigma_0^2 = 1/2.25 = 4/9$.)
+
+Write the density with mean $\mu_0$ and precision $\tau_0$:
+
+$$
+p(\theta)
+=
+\sqrt{\frac{\tau_0}{2\pi}}
+\exp\!\left(
+-\frac{\tau_0}{2}(\theta-\mu_0)^2
+\right),
+\qquad
+\mu_0=-2,\quad
+\tau_0=\frac{1}{2.25}=\frac{4}{9}.
+$$
+
+Equivalently, $\theta\sim N(\mu_0,\sigma_0^2)=N(-2,2.25)$.
+
+```{r p2a}
+mu0 <- -2
+var0 <- 2.25
+tau0 <- 1 / var0
+
+theta_grid <- 
+  seq(
+    from = -8, 
+    to = 8, 
+    length.out = 1000
+  )
+dens0 <- 
+  dnorm(
+    x = theta_grid, 
+    mean = mu0, 
+    sd = sqrt(var0)
+  )
+
+plot(
+  x = theta_grid, 
+  y = dens0, 
+  type = "l", 
+  lwd = 2, 
+  col = "red",
+  xlab = expression(theta ~ "(GDP growth, %)"), ylab = "Density",
+  main = "Prior: N(-2, 2.25)")
+abline(
+  v = mu0, 
+  lty = 2
+)
+
+# TODO: print mu0, tau0, and the PDF expression in your write-up
+c(
+  mu0 = mu0, 
+  tau0 = tau0, 
+  var0 = var0
+)
+```
+
+## (b) Expert’s information
+
+Mean $4\%$ growth, variance $1.5\%$. Independent of yours.  
+Write the density with mean $\mu$ and precision $\tau$, and plot it.
+
+```{r p2b}
+mu  <- 4
+var <- 1.5
+tau <- 1 / var
+
+dens_exp <- 
+  dnorm(
+    x = theta_grid, 
+    mean = mu, 
+    sd = sqrt(var)
+  )
+
+plot(
+  x = theta_grid, 
+  y = dens_exp, 
+  type = "l", 
+  lwd = 2, 
+  col = "blue",
+     xlab = expression(theta ~ "(GDP growth, %)"), ylab = "Density",
+     main = "Expert: N(4, 1.5)")
+abline(
+  v = mu, 
+  lty = 2
+)
+
+c(
+  mu = mu, 
+  tau = tau, 
+  var = var
+)
+```
+
+```{r p2-overlay, fig.height=4}
+# Optional: overlay both forecasts
+plot(theta_grid, dens0, type = "l", lwd = 2, col = "red",
+     ylim = c(0, max(dens0, dens_exp) * 1.05),
+     xlab = expression(theta ~ "(%)"), ylab = "Density",
+     main = "Your prior vs expert")
+lines(theta_grid, dens_exp, lwd = 2, col = "blue")
+legend("topright", c("You (prior)", "Expert"),
+       col = c("red", "blue"), lwd = 2, bty = "n")
+```
+
+## (c) Combining the two forecasts
+
+- Treat the expert as independent Normal “data” / information and update your Normal prior.
+- Or form the product of the two Normal densities. The combined distribution is again Normal, with precision-weighted mean and summed precisions:
+$$
+\tau_{\text{post}} = \tau_0 + \tau,
+\qquad
+\mu_{\text{post}} = \frac{\tau_0\mu_0 + \tau\mu}{\tau_{\text{post}}}.
+$$
+Equivalently, $\theta\mid\text{both}\sim N\!\left(\mu_{\text{post}},\,1/\tau_{\text{post}}\right)$.
+---
+
+# Problem 3 (10 points): Bayesian Linear Regression
+
+## Data setup
+Consider the regression model
+
+$$
+y_i=\mathbf{x}_i^\top\boldsymbol\beta+\varepsilon_i,
+\qquad
+\varepsilon_i\sim N(0,\sigma^2),
+$$
+
+where
+
+$$
+\boldsymbol\beta=
+\begin{pmatrix}
+\beta_0\\
+\beta_1
+\end{pmatrix},
+\qquad
+\mathbf y=
+\begin{pmatrix}
+1\\4\\3\\8\\10
+\end{pmatrix},
+\qquad
+X=
+\begin{pmatrix}
+1&0\\
+1&1\\
+1&2\\
+1&3\\
+1&4
+\end{pmatrix}.
+$$
+
+In matrix notation,
+
+$$
+\mathbf y=X\boldsymbol\beta+\boldsymbol\varepsilon,
+\qquad
+\boldsymbol\varepsilon\sim N_5(\mathbf0,\sigma^2I_5).
+$$
+
+Therefore, the likelihood is
+
+$$
+\mathbf y\mid\boldsymbol\beta,\sigma^2
+\sim N_5(X\boldsymbol\beta,\sigma^2I_5).
+$$
+
+## Preliminary calculations
+
+For the supplied data,
+
+$$
+X^\top X=
+\begin{pmatrix}
+5&10\\
+10&30
+\end{pmatrix},
+\qquad
+X^\top\mathbf y=
+\begin{pmatrix}
+26\\74
+\end{pmatrix}.
+$$
+
+The ordinary least-squares estimate is
+
+$$
+\widehat{\boldsymbol\beta}
+=(X^\top X)^{-1}X^\top\mathbf y
+=
+\begin{pmatrix}
+0.8\\2.2
+\end{pmatrix}.
+$$
+
+The residual sum of squares is
+
+$$
+\operatorname{SSE}
+=(\mathbf y-X\widehat{\boldsymbol\beta})^\top
+(\mathbf y-X\widehat{\boldsymbol\beta})
+=6.4.
+$$
+
+## General conjugate posterior
+
+Use the conjugate prior
+
+$$
+\boldsymbol\beta\mid\sigma^2
+\sim N_2(\boldsymbol\mu_0,\sigma^2\Lambda_0^{-1})
+$$
+
+and
+
+$$
+\sigma^2\sim
+\operatorname{Inv}\text{-}\chi^2(\nu_0,\sigma_0^2),
+$$
+
+where $\Lambda_0$ is the prior precision matrix.
+
+Define
+
+$$
+\Lambda_n=\Lambda_0+X^\top X,
+$$
+
+$$
+\boldsymbol\mu_n=
+\Lambda_n^{-1}
+\left(\Lambda_0\boldsymbol\mu_0+X^\top\mathbf y\right),
+$$
+
+$$
+\nu_n=\nu_0+n,
+$$
+
+and
+
+$$
+\sigma_n^2=
+\frac{
+\nu_0\sigma_0^2+
+\mathbf y^\top\mathbf y+
+\boldsymbol\mu_0^\top\Lambda_0\boldsymbol\mu_0-
+\boldsymbol\mu_n^\top\Lambda_n\boldsymbol\mu_n
+}{\nu_n}.
+$$
+
+The posterior for $\sigma^2$ is
+
+$$
+\boxed{
+\sigma^2\mid\mathbf y
+\sim\operatorname{Inv}\text{-}\chi^2(\nu_n,\sigma_n^2)
+}.
+$$
+
+Conditional on $\sigma^2$, the posterior for $\boldsymbol\beta$ is
+
+$$
+\boxed{
+\boldsymbol\beta\mid\sigma^2,\mathbf y
+\sim N_2(\boldsymbol\mu_n,\sigma^2\Lambda_n^{-1})
+}.
+$$
+
+After integrating out $\sigma^2$, the marginal posterior is
+
+$$
+\boxed{
+\boldsymbol\beta\mid\mathbf y
+\sim t_{\nu_n}
+\left(\boldsymbol\mu_n,\sigma_n^2\Lambda_n^{-1}\right)
+}.
+$$
+
+Thus, the posterior mean is
+
+$$
+E(\boldsymbol\beta\mid\mathbf y)=\boldsymbol\mu_n.
+$$
+
+The marginal 95% credible interval for $\beta_j$ is
+
+$$
+\boxed{
+\mu_{n,j}\pm
+t_{0.975,\nu_n}
+\sqrt{\sigma_n^2(\Lambda_n^{-1})_{jj}}
+}.
+$$
+
+The posterior mean of $\sigma^2$ is
+
+$$
+E(\sigma^2\mid\mathbf y)
+=\frac{\nu_n\sigma_n^2}{\nu_n-2},
+\qquad \nu_n>2.
+$$
+
+Its 95% credible interval is
+
+$$
+\boxed{
+\left[
+\frac{\nu_n\sigma_n^2}{\chi^2_{0.975,\nu_n}},
+\frac{\nu_n\sigma_n^2}{\chi^2_{0.025,\nu_n}}
+\right]
+}.
+$$
+
+## Part (a): diffuse prior
+
+Use the diffuse prior
+
+$$
+\pi(\boldsymbol\beta,\sigma^2)\propto\frac1{\sigma^2}.
+$$
+
+The conditional posterior for $\boldsymbol\beta$ is
+
+$$
+\boldsymbol\beta\mid\sigma^2,\mathbf y
+\sim N_2\left(
+\widehat{\boldsymbol\beta},
+\sigma^2(X^\top X)^{-1}
+\right).
+$$
+
+Because $n=5$ and $p=2$, the residual degrees of freedom are
+
+$$
+\nu=n-p=3.
+$$
+
+The posterior for $\sigma^2$ is
+
+$$
+\boxed{
+\sigma^2\mid\mathbf y
+\sim\operatorname{Inv}\text{-}\chi^2
+\left(3,\frac{6.4}{3}\right)
+}.
+$$
+
+The marginal posterior for $\boldsymbol\beta$ is
+
+$$
+\boxed{
+\boldsymbol\beta\mid\mathbf y
+\sim t_3\left[
+\begin{pmatrix}0.8\\2.2\end{pmatrix},
+\frac{6.4}{3}(X^\top X)^{-1}
+\right]
+}.
+$$
+
+| Parameter | Posterior mean | 95% credible interval |
+|:--|--:|:--|
+| $\beta_0$ | 0.800 | $(-2.801,4.401)$ |
+| $\beta_1$ | 2.200 | $(0.730,3.670)$ |
+| $\sigma^2$ | 6.400 | $(0.685,29.658)$ |
+
+The interval for $\sigma^2$ is wide because there are only three residual
+degrees of freedom.
+
+## Part (b): informative prior
+
+For the informative prior,
+
+$$
+\boldsymbol\mu_0=
+\begin{pmatrix}1\\2\end{pmatrix},
+\qquad
+\Lambda_0=I_2,
+\qquad
+\nu_0=5,
+\qquad
+\sigma_0^2=0.6.
+$$
+
+The updated posterior parameters are
+
+$$
+\Lambda_n=
+\begin{pmatrix}
+6&10\\10&31
+\end{pmatrix},
+$$
+
+$$
+\boldsymbol\mu_n=
+\begin{pmatrix}
+0.89535\\2.16279
+\end{pmatrix},
+\qquad
+\nu_n=10,
+\qquad
+\sigma_n^2=0.94535.
+$$
+
+Therefore,
+
+$$
+\boxed{
+\sigma^2\mid\mathbf y
+\sim\operatorname{Inv}\text{-}\chi^2(10,0.94535)
+}
+$$
+
+and
+
+$$
+\boxed{
+\boldsymbol\beta\mid\mathbf y
+\sim t_{10}
+\left(\boldsymbol\mu_n,0.94535\Lambda_n^{-1}\right)
+}.
+$$
+
+| Parameter | Posterior mean | 95% credible interval |
+|:--|--:|:--|
+| $\beta_0$ | 0.895 | $(-0.405,2.196)$ |
+| $\beta_1$ | 2.163 | $(1.591,2.735)$ |
+| $\sigma^2$ | 1.182 | $(0.462,2.911)$ |
+
+## Parts (c)--(e): $g$-priors
+
+Use the conventional $g$-prior
+
+$$
+\boxed{
+\boldsymbol\beta\mid\sigma^2
+\sim N_2\left[
+\boldsymbol\mu_0,
+g_0\sigma^2(X^\top X)^{-1}
+\right]
+}.
+$$
+
+Equivalently, in precision notation,
+
+$$
+\Lambda_0=\frac1{g_0}X^\top X.
+$$
+
+All other prior values remain
+
+$$
+\boldsymbol\mu_0=
+\begin{pmatrix}1\\2\end{pmatrix},
+\qquad
+\nu_0=5,
+\qquad
+\sigma_0^2=0.6.
+$$
+
+For this prior, the posterior mean can be simplified to
+
+$$
+\boxed{
+\boldsymbol\mu_n=
+\frac{\boldsymbol\mu_0+g_0\widehat{\boldsymbol\beta}}
+{1+g_0}
+}.
+$$
+
+Therefore, $g_0$ determines how the prior mean and the least-squares estimate
+are weighted.
+
+### Part (c): $g_0=0.1$
+
+$$
+\boldsymbol\mu_n=
+\frac{
+\begin{pmatrix}1\\2\end{pmatrix}
++0.1\begin{pmatrix}0.8\\2.2\end{pmatrix}
+}{1.1}
+=
+\begin{pmatrix}
+0.9818\\2.0182
+\end{pmatrix}.
+$$
+
+| Parameter | Posterior mean | 95% credible interval |
+|:--|--:|:--|
+| $\beta_0$ | 0.982 | $(0.463,1.501)$ |
+| $\beta_1$ | 2.018 | $(1.806,2.230)$ |
+| $\sigma^2$ | 1.243 | $(0.486,3.063)$ |
+
+### Part (d): $g_0=1$
+
+$$
+\boldsymbol\mu_n=
+\frac{
+\begin{pmatrix}1\\2\end{pmatrix}
++\begin{pmatrix}0.8\\2.2\end{pmatrix}
+}{2}
+=
+\begin{pmatrix}
+0.9\\2.1
+\end{pmatrix}.
+$$
+
+| Parameter | Posterior mean | 95% credible interval |
+|:--|--:|:--|
+| $\beta_0$ | 0.900 | $(-0.302,2.102)$ |
+| $\beta_1$ | 2.100 | $(1.609,2.591)$ |
+| $\sigma^2$ | 1.213 | $(0.474,2.987)$ |
+
+### Part (e): $g_0=10$
+
+$$
+\boldsymbol\mu_n=
+\frac{
+\begin{pmatrix}1\\2\end{pmatrix}
++10\begin{pmatrix}0.8\\2.2\end{pmatrix}
+}{11}
+=
+\begin{pmatrix}
+0.8182\\2.1818
+\end{pmatrix}.
+$$
+
+| Parameter | Posterior mean | 95% credible interval |
+|:--|--:|:--|
+| $\beta_0$ | 0.818 | $(-0.782,2.418)$ |
+| $\beta_1$ | 2.182 | $(1.529,2.835)$ |
+| $\sigma^2$ | 1.182 | $(0.462,2.912)$ |
+
+## Part (f): comparison and interpretation
+
+The least-squares estimate of the slope is $2.2$, while its prior mean is
+$2$. The estimates show the following pattern:
+
+- When $g_0=0.1$, the prior variance is small, so the prior is strong. The
+  posterior slope, $2.018$, is close to the prior mean, and its credible
+  interval is narrow.
+- When $g_0=1$, the prior mean and least-squares estimate receive equal
+  weight, giving a posterior slope mean of $2.1$.
+- When $g_0=10$, the prior variance is large, so the prior is weak. The
+  posterior slope, $2.182$, is close to the least-squares estimate of $2.2$.
+- The diffuse prior contributes almost no prior information and produces the
+  widest credible intervals.
+
+In summary,
+
+$$
+\boxed{
+\text{small }g_0\Longrightarrow\text{stronger prior influence},
+\qquad
+\text{large }g_0\Longrightarrow\text{stronger data influence}.
+}
+$$
+
+## Density plots for $\beta_1$: prior, likelihood, and posterior
+
+The plots below overlay the **prior**, **likelihood**, and **posterior** densities for $\beta_1$ in parts (a)--(e). Densities are the marginal location--scale Student-$t$ laws implied by the conjugate Normal--Inv-$\chi^2$ model (matching the credible intervals above). For the diffuse prior in (a), the prior is improper, so only the likelihood and posterior are shown (and they coincide for $\boldsymbol\beta$).
+
+```{r p3-beta1-plots, fig.height=10, fig.width=8}
+# Data and OLS
+y <- c(1, 4, 3, 8, 10)
+X <- cbind(1, 0:4)
+n <- length(y)
+p <- ncol(X)
+XtX <- crossprod(X)
+Xty <- crossprod(X, y)
+beta_hat <- as.numeric(solve(XtX, Xty))
+SSE <- sum((y - as.numeric(X %*% beta_hat))^2)
+s2_ols <- SSE / (n - p)
+
+# Location-scale Student-t density:
+# X = mu + sqrt(scale) * T_nu  =>  f(x) = dt((x-mu)/s, nu) / s
+dt_ls <- function(
+  x,
+  mu,
+  scale,
+  nu
+) {
+  s <- sqrt(scale)
+  dt((x - mu) / s, df = nu) / s
+}
+
+# Conjugate update
+update_conj <- function(
+  mu0,
+  Lambda0,
+  nu0,
+  sigma0_sq
+) {
+  Ln <- Lambda0 + XtX
+  mun <- as.numeric(solve(Ln, Lambda0 %*% mu0 + Xty))
+  nun <- nu0 + n
+  sn2 <- as.numeric(
+    (
+      nu0 * sigma0_sq +
+        sum(y^2) +
+        drop(t(mu0) %*% Lambda0 %*% mu0) -
+        drop(t(mun) %*% Ln %*% mun)
+    ) / nun
+  )
+  list(
+    mu0 = mu0,
+    L0 = Lambda0,
+    mun = mun,
+    Ln = Ln,
+    nun = nun,
+    sn2 = sn2,
+    nu0 = nu0,
+    sigma0_sq = sigma0_sq
+  )
+}
+
+like_scale_b1 <- s2_ols * solve(XtX)[2, 2]
+like_nu <- n - p
+
+plot_case <- function(
+  fit,
+  title,
+  show_prior = TRUE
+) {
+  cents <- c(
+    fit$mu0[2],
+    beta_hat[2],
+    fit$mun[2]
+  )
+  spreads <- c(
+    if (show_prior) {
+      sqrt(fit$sigma0_sq * solve(fit$L0)[2, 2])
+    } else {
+      NA
+    },
+    sqrt(like_scale_b1),
+    sqrt(fit$sn2 * solve(fit$Ln)[2, 2])
+  )
+  lo <- min(cents - 4 * spreads, na.rm = TRUE)
+  hi <- max(cents + 4 * spreads, na.rm = TRUE)
+  b1_grid <- seq(
+    from = lo,
+    to = hi,
+    length.out = 600
+  )
+
+  dens_like <- dt_ls(
+    x = b1_grid,
+    mu = beta_hat[2],
+    scale = like_scale_b1,
+    nu = like_nu
+  )
+  dens_post <- dt_ls(
+    x = b1_grid,
+    mu = fit$mun[2],
+    scale = fit$sn2 * solve(fit$Ln)[2, 2],
+    nu = fit$nun
+  )
+
+  if (show_prior) {
+    dens_prior <- dt_ls(
+      x = b1_grid,
+      mu = fit$mu0[2],
+      scale = fit$sigma0_sq * solve(fit$L0)[2, 2],
+      nu = fit$nu0
+    )
+    ymax <- max(dens_prior, dens_like, dens_post) * 1.05
+    plot(
+      x = b1_grid,
+      y = dens_prior,
+      type = "l",
+      lwd = 2,
+      col = "red",
+      ylim = c(0, ymax),
+      xlab = expression(beta[1]),
+      ylab = "Density",
+      main = title
+    )
+    lines(
+      x = b1_grid,
+      y = dens_like,
+      lwd = 2,
+      col = "blue"
+    )
+    lines(
+      x = b1_grid,
+      y = dens_post,
+      lwd = 2,
+      col = "darkgreen"
+    )
+    legend(
+      x = "topright",
+      legend = c("Prior", "Likelihood", "Posterior"),
+      col = c("red", "blue", "darkgreen"),
+      lwd = 2,
+      bty = "n"
+    )
+  } else {
+    ymax <- max(dens_like, dens_post) * 1.05
+    plot(
+      x = b1_grid,
+      y = dens_like,
+      type = "l",
+      lwd = 2,
+      col = "blue",
+      ylim = c(0, ymax),
+      xlab = expression(beta[1]),
+      ylab = "Density",
+      main = title
+    )
+    lines(
+      x = b1_grid,
+      y = dens_post,
+      lwd = 2,
+      col = "darkgreen"
+    )
+    legend(
+      x = "topright",
+      legend = c("Likelihood", "Posterior (improper prior)"),
+      col = c("blue", "darkgreen"),
+      lwd = 2,
+      bty = "n"
+    )
+  }
+}
+
+par(
+  mfrow = c(3, 2),
+  mar = c(4, 4, 3, 1)
+)
+
+# (a) Diffuse prior
+fit_a <- list(
+  mu0 = beta_hat,
+  L0 = diag(2) * 1e-12,
+  mun = beta_hat,
+  Ln = XtX,
+  nun = n - p,
+  sn2 = s2_ols,
+  nu0 = NA,
+  sigma0_sq = NA
+)
+plot_case(
+  fit = fit_a,
+  title = "(a) Diffuse prior",
+  show_prior = FALSE
+)
+
+# (b) Informative prior
+fit_b <- update_conj(
+  mu0 = c(1, 2),
+  Lambda0 = diag(2),
+  nu0 = 5,
+  sigma0_sq = 0.6
+)
+plot_case(
+  fit = fit_b,
+  title = "(b) Informative prior"
+)
+
+# (c)--(e) g-priors
+for (g0 in c(0.1, 1, 10)) {
+  fit_g <- update_conj(
+    mu0 = c(1, 2),
+    Lambda0 = XtX / g0,
+    nu0 = 5,
+    sigma0_sq = 0.6
+  )
+  plot_case(
+    fit = fit_g,
+    title = sprintf("(g-prior) g0 = %g", g0)
+  )
+}
+
+# blank 6th panel
+plot.new()
+title(main = expression("Overlay densities for " * beta[1]))
+legend(
+  x = "center",
+  legend = c(
+    "Prior (red)",
+    "Likelihood (blue)",
+    "Posterior (green)",
+    "Panel (a): prior improper, so omitted"
+  ),
+  bty = "n",
+  cex = 1.1
+)
+```
+
+# Problem 4 (10 points): Prior / Likelihood / Posterior Summaries
+
+For each setting, briefly describe (i) prior, (ii) likelihood, (iii) posterior, including interpretation of parameters.
+
+## (a) Beta–Binomial
+
+*(i) Prior:* $\theta\sim\mathrm{Beta}(\alpha,\beta)$ on $(0,1)$. Here $\theta$ is a success probability (e.g., $P(\text{heads})$). The hyperparameters $\alpha$ and $\beta$ act like prior “pseudo-counts” of successes and failures: larger $\alpha+\beta$ means a stronger prior; $\alpha/(\alpha+\beta)$ is the prior mean.
+
+*(ii) Likelihood:* Given $\theta$, data are $S\sim\mathrm{Binomial}(N,\theta)$ (or $N$ Bernoulli trials), so
+$L(\theta)\propto\theta^S(1-\theta)^{N-S}$. $S$ is the number of successes in $N$ trials.
+
+*(iii) Posterior:* By conjugacy,
+$\theta\mid S,N\sim\mathrm{Beta}(\alpha+S,\beta+N-S)$.
+The posterior mean $(\alpha+S)/(\alpha+\beta+N)$ shrinks the MLE $S/N$ toward the prior mean, with weight depending on prior strength $\alpha+\beta$ versus sample size $N$.
+
+## (b) Poisson data
+
+*(i) Prior:* For a Poisson rate $\lambda>0$, a conjugate prior is $\lambda\sim\mathrm{Gamma}(a,b)$ (shape–rate form). $a$ and $b$ encode prior information about the intensity: prior mean $a/b$, and larger $b$ (for fixed mean) means a more concentrated prior.
+
+*(ii) Likelihood:* Observations $y_1,\ldots,y_n\stackrel{\text{iid}}{\sim}\mathrm{Poisson}(\lambda)$, so
+$L(\lambda)\propto\lambda^{\sum y_i}e^{-n\lambda}$. $\lambda$ is the expected count per unit time/exposure.
+
+*(iii) Posterior:*
+$\lambda\mid\mathbf{y}\sim\mathrm{Gamma}\big(a+\sum y_i,\ b+n\big)$.
+The shape updates by total counts; the rate updates by exposure $n$. The posterior mean $(a+\sum y_i)/(b+n)$ is a precision-weighted blend of the prior mean and the sample mean $\bar y$.
+
+## (c) Normal distribution
+
+*(i) Prior:* For Normal data with unknown mean $\mu$ (and, in the full conjugate case, unknown variance $\sigma^2$), a common prior is
+$\mu\mid\sigma^2\sim N(\mu_0,\sigma^2/\kappa_0)$ and $\sigma^2\sim\mathrm{Inv\text{-}Gamma}$ (or scaled Inv-$\chi^2$) with hyperparameters $(\nu_0,\sigma_0^2)$.
+Here $\mu_0$ is the prior guess for the mean, $\kappa_0$ is prior sample size (how strongly we trust $\mu_0$), $\nu_0$ is prior degrees of freedom for $\sigma^2$, and $\sigma_0^2$ is a prior scale for the variance.
+
+*(ii) Likelihood:* $y_1,\ldots,y_n\stackrel{\text{iid}}{\sim} N(\mu,\sigma^2)$. The sample mean $\bar y$ and sample variance summarize the information about $(\mu,\sigma^2)$.
+
+*(iii) Posterior:* The conjugate update keeps the same family:
+$\mu\mid\sigma^2,\mathbf{y}\sim N(\mu_n,\sigma^2/\kappa_n)$ with
+$\kappa_n=\kappa_0+n$ and
+$\mu_n=(\kappa_0\mu_0+n\bar y)/\kappa_n$,
+and an updated Inv-Gamma / scaled Inv-$\chi^2$ posterior for $\sigma^2$ with degrees of freedom $\nu_n=\nu_0+n$.
+Thus the posterior mean of $\mu$ shrinks $\bar y$ toward $\mu_0$, with shrinkage controlled by $\kappa_0$ versus $n$.
+
+---
+
+# Problem 5 (20 points): Readings Discussion
+
+Papers (on Canvas):
+
+1. Rossi & Allenby (1993)
+2. Rossi, McCulloch, & Allenby (1996)
+3. Montgomery (1997)
+4. Montgomery & Rossi (1999)
+5. Rossi & Allenby (2003)
+
+**Note:** Empirical Bayes ≠ Hierarchical Bayes (the course treats the latter as “real” Bayes). Cite papers in your answers.
+
+## (a) Random effects vs fixed effects vs Bayesian (e.g. price elasticities)
+
+When estimating household-level price elasticities from scanner panel data, the three approaches differ mainly in how they treat heterogeneity and how they use information across households.
+
+**Fixed effects.** Each household has its own parameters (e.g., brand intercepts and price coefficients), estimated largely from that household’s own purchases. This is flexible, but many households buy infrequently, so household-level MLEs are noisy or even unidentified (Rossi & Allenby, 1993; Rossi, McCulloch, & Allenby, 1996). Fixed effects also do not automatically produce a useful distribution of preferences for predicting new households.
+
+**Random effects (classical hierarchical / mixed logit style).** Household parameters are treated as draws from a population distribution (e.g., $\boldsymbol\beta_h\sim N(\bar{\boldsymbol\beta},\mathbf{V}_\beta)$). Estimation typically targets the population mean and covariance, often by maximizing a marginal likelihood. This pools information across households and shrinks extreme household estimates, but classical implementations often rely on asymptotic approximations and do not fully deliver a joint posterior over all household-level and population-level unknowns. Empirical Bayes variants that plug in a point estimate of the hyper-parameters are related but are not fully Bayesian (Rossi & Allenby, 2003).
+
+**Bayesian (hierarchical Bayes).** The same random-effects structure is embedded in a full probability model: likelihood for choices, prior / hyperprior on the population distribution, and inference for *both* household parameters and hyperparameters (Rossi & Allenby, 1993; Rossi & Allenby, 2003). Posterior means of household elasticities are optimally shrunk toward the population; uncertainty in $\mathbf{V}_\beta$ and $\bar{\boldsymbol\beta}$ is retained rather than plugged in. This is especially valuable for target marketing and micro-pricing, where managers need household- or segment-level elasticities, not only an average slope (Montgomery, 1997; Rossi et al., 1996).
+
+In short: fixed effects = household-specific but data-poor; classical random effects = pooling via a population distribution; hierarchical Bayes = the same pooling idea with full posterior inference and better finite-sample uncertainty quantification.
+
+## (b) Scanner-panel information for household heterogeneity; how to incorporate it
+
+Scanner panels provide rich covariates and purchase histories that help explain why households differ:
+
+1. **Purchase history / revealed preference:** brand chosen, prices paid, promotions seen, purchase timing and quantity (Rossi et al., 1996). These enter the likelihood (e.g., multinomial logit / discrete-choice utility of brand $j$ for household $h$ at occasion $t$).
+2. **Demographics and household characteristics:** income, family size, etc., which can shift the mean of household preferences (Rossi & Allenby, 1993; Montgomery, 1997).
+3. **Marketing-mix exposure:** feature, display, and price variation that identifies price and promotion sensitivities (Montgomery, 1997).
+4. **Theory-based structure:** economic restrictions or prior beliefs about elasticities (e.g., signs, relative magnitudes) that regularize estimates when data are thin (Montgomery & Rossi, 1999).
+
+**How to incorporate them in models:**
+
+- Put demographics in the **upper level** of a hierarchy: e.g., $\boldsymbol\beta_h\sim N(\mathbf{Z}_h\boldsymbol\Delta,\mathbf{V}_\beta)$, so observable traits shift mean preferences (Rossi & Allenby, 1993; Rossi & Allenby, 2003).
+- Let purchase histories identify household-level $\boldsymbol\beta_h$ through the **likelihood**.
+- Use **informative / theory-based priors** on elasticities or on elements of $\mathbf{V}_\beta$ when panels are short (Montgomery & Rossi, 1999).
+- For targeting, combine posterior household parameters with purchase history to score households for promotions (Rossi et al., 1996).
+
+## (c) Why Bayes is useful for household heterogeneity / what data limits it addresses
+
+Scanner panels create a classic **small-$T_h$, large-$H$** problem: many households, but few purchases per household. Household-level MLE then has high variance, unstable elasticities, and sometimes non-existence (perfect classification, collinearity of prices within a household). Hierarchical Bayes addresses this by:
+
+- **Shrinkage / partial pooling:** extreme household elasticities are pulled toward the population, reducing MSE relative to fixed effects (Rossi & Allenby, 1993; Rossi & Allenby, 2003).
+- **Borrowing strength:** information from similar households (or demographically similar households) stabilizes estimates for light buyers (Rossi et al., 1996).
+- **Proper uncertainty:** posteriors and credible intervals reflect both within-household sampling error and uncertainty about the heterogeneity distribution—important when deciding whether a household is “truly” price sensitive.
+- **Decision-ready outputs:** full posterior draws of household parameters support expected-profit targeting and micro-marketing simulations (Montgomery, 1997; Rossi et al., 1996).
+- **Regularization via priors:** theory-based priors further curb unreasonable elasticities when identifying variation is weak (Montgomery & Rossi, 1999).
+
+Thus Bayes is particularly useful precisely where the data limitation is **sparse household histories**, not a lack of households overall.
+
+## (d) How marketing researchers use / interpret the prior
+
+In this literature the prior is not merely a computational convenience; it is part of the scientific and managerial model:
+
+1. **Population / hierarchical prior:** $\boldsymbol\beta_h\sim N(\bar{\boldsymbol\beta},\mathbf{V}_\beta)$ (or with demographics in the mean) represents beliefs about how tastes are dispersed in the market. Posterior estimates of $\mathbf{V}_\beta$ are themselves of interest—they measure the extent of heterogeneity relevant for segmentation (Rossi & Allenby, 1993, 2003).
+2. **Hyperpriors:** weakly informative priors on $\bar{\boldsymbol\beta}$ and $\mathbf{V}_\beta$ let the panel dominate when $H$ is large, while still regularizing $\mathbf{V}_\beta$ (Rossi & Allenby, 2003).
+3. **Theory-based priors:** Montgomery & Rossi (1999) encode economic theory (e.g., plausible signs and magnitudes of price elasticities) so that estimates remain interpretable when likelihood information is limited.
+4. **Decision interpretation:** priors / posteriors are often evaluated by **downstream marketing decisions**—targeting lift, profit from customized prices—rather than only by in-sample fit (Rossi et al., 1996; Montgomery, 1997).
+
+Importantly, the course distinction applies: **Empirical Bayes** plugs in a point estimate of the hyper-parameters; **hierarchical Bayes** keeps a prior on those hyper-parameters and integrates them out. The readings emphasize the latter as coherent Bayesian inference (Rossi & Allenby, 2003).
+
+## (e) Hierarchical Bayes and MCMC (why MCMC is needed)
+
+**Hierarchical Bayes (HB).** A multi-level probability model: (i) observation model for choices given household parameters; (ii) household parameters drawn from a population distribution; (iii) priors on the population parameters. Inference targets the joint posterior of all unknowns—$\{\boldsymbol\beta_h\}_{h=1}^H$, $\bar{\boldsymbol\beta}$, $\mathbf{V}_\beta$, etc. (Rossi & Allenby, 1993, 2003).
+
+**MCMC (e.g., Gibbs sampling / Metropolis–Hastings).** A simulation method that generates draws from the joint posterior when the posterior has no closed form. Typical HB logit models alternate between:
+
+- drawing each $\boldsymbol\beta_h\mid\text{data}_h,\bar{\boldsymbol\beta},\mathbf{V}_\beta$,
+- drawing $\bar{\boldsymbol\beta},\mathbf{V}_\beta\mid\{\boldsymbol\beta_h\}$,
+
+and so on (Rossi & Allenby, 2003).
+
+**Why MCMC is needed here.** With discrete-choice likelihoods and hundreds/thousands of household parameter vectors, the joint posterior is high-dimensional and analytically intractable; the marginal likelihood for classical random-effects estimation is also a difficult integral. MCMC provides practical access to household-level posteriors and to functions of parameters (elasticities, optimal prices, targeting scores) by averaging over draws (Rossi et al., 1996; Montgomery, 1997; Rossi & Allenby, 2003). Without MCMC (or another computational Bayes method), fully Bayesian hierarchical inference for these marketing models would generally be infeasible.
+
+---
