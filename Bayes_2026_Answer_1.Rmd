@@ -152,8 +152,7 @@ plot_beta_binomial <-
           shape2 = beta0
         )
 
-      # Likelihood as a function of theta (up to a constant is fine for shape;
-      # here we plot the binomial pmf in theta)
+      # Likelihood as a function of theta
       dens_like <- 
         dbinom(
           x = S, 
@@ -170,8 +169,12 @@ plot_beta_binomial <-
           shape2 = beta_n
         )
 
+      # Normalize likelihood to the same vertical scale as prior/posterior
+      # (shape is preserved; binomial pmf and Beta densities have different units)
+      dens_like_plot <- dens_like / max(dens_like) * max(dens_prior, dens_post)
+
       ylim_max <- 
-        max(dens_prior, dens_like, dens_post, na.rm = TRUE) * 1.05
+        max(dens_prior, dens_like_plot, dens_post, na.rm = TRUE) * 1.05
 
       if (is.null(main)) {
         main <- sprintf("S = %d, N = %d", S, N)
@@ -188,7 +191,7 @@ plot_beta_binomial <-
     )
     lines(
       x = theta, 
-      y = dens_like,
+      y = dens_like_plot,
       lwd = 2, 
       col = "blue"
     )
@@ -200,7 +203,7 @@ plot_beta_binomial <-
     )
     legend(
       "topright",
-      legend = c("Prior", "Likelihood", "Posterior"),
+      legend = c("Prior", "Likelihood (rescaled)", "Posterior"),
       col = c("red", "blue", "darkgreen"), lwd = 2, bty = "n"
     )
 }
